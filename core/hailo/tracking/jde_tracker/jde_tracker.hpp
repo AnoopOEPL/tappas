@@ -72,7 +72,7 @@ public:
                                                                                                                                   m_keep_tracked_frames(keep_tracked), m_keep_new_frames(keep_new), m_keep_lost_frames(keep_lost),
                                                                                                                                   m_keep_past_metadata(keep_past_metadata), m_debug(debug), m_hailo_objects_blacklist(hailo_objects_blacklist_vec)
     {
-	printf("HailoTracker: nv-imx");
+	printf("HailoTracker: nv-imx tag");
         m_kalman_filter = KalmanFilter(std_weight_position, std_weight_position_box, std_weight_velocity, std_weight_velocity_box);
     }
 
