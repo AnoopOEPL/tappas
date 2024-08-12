@@ -13,8 +13,33 @@
 #include "common/labels/coco_ninety.hpp"
 #include "common/labels/coco_visdrone.hpp"
 
+//shared mem include
+#include<stdio.h>
+#include<sys/ipc.h>
+#include<sys/shm.h>
+#include<sys/types.h>
+#include<errno.h>
+#include<stdlib.h>
+
 static const int DEFAULT_MAX_BOXES = 100;
 static const float DEFAULT_THRESHOLD = 0.4;
+
+
+#define YOLO_SHM_KEY 0x1222
+struct yolo_shmseg {
+    float detectThresh1=0.4;
+    float detectThresh2=0.2;
+    float detectThresh3=0.1;
+    unsigned int rectAreaThresh1=256;
+    unsigned int rectAreaThresh2=100;
+    unsigned int model_input_size_x=640;
+    unsigned int model_input_size_y=640;
+};
+
+static int g_yolo_shmid=-1;
+static struct yolo_shmseg *g_yolo_shmp=nullptr;
+struct yolo_shmseg g_yolo_shm;
+static bool g_bShmInitialized=false;
 
 class HailoNMSDecode
 {
@@ -41,16 +66,45 @@ private:
 
     void parse_bbox_to_detection_object(auto dequant_bbox, uint32_t class_index, std::vector<HailoDetection> &_objects)
     {
-        float confidence = CLAMP(dequant_bbox.score, 0.0f, 1.0f);
-        // filter score by detection threshold if needed.
-        if (!_filter_by_score || dequant_bbox.score > _detection_thr)
-        {
-            float32_t w, h = 0.0f;
-            // parse width and height of the box
-            std::tie(w, h) = get_shape(&dequant_bbox);
-            // create new detection object and add it to the vector of detections
-            _objects.push_back(HailoDetection(HailoBBox(dequant_bbox.x_min, dequant_bbox.y_min, w, h), class_index, labels_dict[class_index], confidence));
-        }
+        	float confidence = CLAMP(dequant_bbox.score, 0.0f, 1.0f);
+
+        	// filter score by detection threshold if needed.
+        	//if (!_filter_by_score || dequant_bbox.score > _detection_thr)
+        	//{
+        	//    float32_t w, h = 0.0f;
+        	//    // parse width and height of the box
+        	//    std::tie(w, h) = get_shape(&dequant_bbox);
+        	//    // create new detection object and add it to the vector of detections
+        	//    _objects.push_back(HailoDetection(HailoBBox(dequant_bbox.x_min, dequant_bbox.y_min, w, h), class_index, labels_dict[class_index], confidence));
+        	//}
+
+		float32_t w, h = 0.0f;        
+		std::tie(w, h) = get_shape(&dequant_bbox); // parse width and height of the box   
+		unsigned int area=(unsigned int)(g_yolo_shm.model_input_size_x*g_yolo_shm.model_input_size_y*w*h);
+
+		if(area <= g_yolo_shm.rectAreaThresh2)	// Smallest detection
+		{
+			if(confidence  >= g_yolo_shm.detectThresh3)
+			{
+                		_objects.push_back(HailoDetection(HailoBBox(dequant_bbox.x_min, dequant_bbox.y_min, w, h), class_index, labels_dict[class_index], confidence));
+
+			}
+		}
+		else if( area <= g_yolo_shm.rectAreaThresh1 )	// Medium size detection
+		{
+			if(confidence  >= g_yolo_shm.detectThresh2)
+ 			{
+               			_objects.push_back(HailoDetection(HailoBBox(dequant_bbox.x_min, dequant_bbox.y_min, w, h), class_index, labels_dict[class_index], confidence));
+
+			}
+		}
+		else
+		{
+			if(confidence  >= g_yolo_shm.detectThresh1)
+			{
+	      		 	_objects.push_back(HailoDetection(HailoBBox(dequant_bbox.x_min, dequant_bbox.y_min, w, h), class_index, labels_dict[class_index], confidence));
+			}
+		}
     }
 
     std::pair<float, float> get_shape(auto *bbox_struct)
@@ -67,6 +121,26 @@ public:
         // making sure that the network's output is indeed an NMS type, by checking the order type value included in the metadata
         if (HAILO_FORMAT_ORDER_HAILO_NMS != _vstream_info.format.order)
             throw std::invalid_argument("Output tensor " + _nms_output_tensor->name() + " is not an NMS type");
+
+	if(g_bShmInitialized==false)
+	{
+		//Shared memory yolo postprocess
+        	g_yolo_shmid = shmget(YOLO_SHM_KEY, sizeof(struct yolo_shmseg), 0644|IPC_CREAT); //create shared memory
+       		if (g_yolo_shmid == -1) 
+        	{
+       		     perror("yolo post process:nms | Shared memory create error\n");
+        	} 	   
+        	g_yolo_shmp = (yolo_shmseg*)shmat(g_yolo_shmid, NULL, 0);//Attach to the segment to get a pointer to it.
+       		if (g_yolo_shmp == (void *) -1) 
+        	{
+        	    perror("yolo post process:nms | Shared memory attach error\n");
+        	}
+		g_bShmInitialized=true;
+		printf("Pos process SHM attached\n");
+	}
+	
+	//copy shared memory data locally
+	memcpy(&g_yolo_shm, g_yolo_shmp,sizeof(struct yolo_shmseg));
     };
 
     template <typename T, typename BBoxType>

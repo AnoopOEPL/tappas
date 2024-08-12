@@ -320,5 +320,23 @@ inline std::vector<STrack> JDETracker::update(std::vector<HailoDetectionPtr> &in
         for (uint i = 0; i < this->m_lost_stracks.size(); i++)
             output_stracks.emplace_back(this->m_lost_stracks[i]);
     }
+
+    //update no of active tracks
+    m_track_shmp->_numTracks=this->output_stracks.size();
+
+    //save ouput stracks to shm
+    for (uint i = 0; i < output_stracks.size(); i++)
+    {   if(i<MAX_NUM_TRACKS)
+	{
+		STrack temp_track=output_stracks[i];
+        	std::vector<float> xyah= temp_track.to_xyah();
+		m_track_shmp->_tracks[i].cX        = xyah[0]*m_track_shmp->_model_input_size_x; //cx
+        	m_track_shmp->_tracks[i].cY        = xyah[1]*m_track_shmp->_model_input_size_y; //cy
+		m_track_shmp->_tracks[i].width     = xyah[2]*xyah[3]*m_track_shmp->_model_input_size_x; //a*h
+		m_track_shmp->_tracks[i].height    = xyah[3]*m_track_shmp->_model_input_size_y; //h
+        	m_track_shmp->_tracks[i].trackID   = temp_track.m_track_id;
+		m_track_shmp->_tracks[i].classtype = temp_track.m_class_id;
+	}		
+     }
     return output_stracks;
 }
