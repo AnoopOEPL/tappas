@@ -32,6 +32,8 @@
 #include "xtensor/xio.hpp"
 #include "xtensor/xmath.hpp"
 
+#define MAX_NUM_TRACKS 100
+
 __BEGIN_DECLS
 enum TrackState
 {

@@ -108,7 +108,7 @@ public:
         m_kalman_filter = KalmanFilter(std_weight_position, std_weight_position_box, std_weight_velocity, std_weight_velocity_box);
 
 	//Shared memory
-        m_track_shmid = track_shmget(SHM_KEY, sizeof(struct track_shmseg), 0644|IPC_CREAT);
+        m_track_shmid = shmget(SHM_KEY, sizeof(struct track_shmseg), 0644|IPC_CREAT);
         if (m_track_shmid == -1) 
 	{
             perror("JDETracker | Shared memory create error\n");
