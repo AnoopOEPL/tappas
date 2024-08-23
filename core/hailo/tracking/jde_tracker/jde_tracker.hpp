@@ -130,7 +130,7 @@ public:
 	}
 	printf("HailoTracker: _model_input_size_x,_model_input_size_x:%d,%d\n",m_track_shmp->_model_input_size_x,m_track_shmp->_model_input_size_y);
 	printf("HailoTracker: _keep_predict_frames,_predictable_region:%d,%f\n",m_track_shmp->_keep_predict_frames,m_track_shmp->_predictable_region);
-	printf("HailoTracker:  _iou_scale_factor,_iou_scale_enable:%f,%d\n", m_track_shmp->_iou_scale_factor,(int)m_track_shmp->_iou_scale_enable;
+	printf("HailoTracker:  _iou_scale_factor,_iou_scale_enable:%f,%d\n", m_track_shmp->_iou_scale_factor,(int)m_track_shmp->_iou_scale_enable);
     }
 
     // Destructor
