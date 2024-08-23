@@ -59,6 +59,7 @@ public:
     // Class members
     bool m_is_activated; // Is activated
     int m_track_id;      // Unique track id
+    int m_class_id;      //class id
     int m_frame_id;      // Current frame id (used for measuring half-life)
     int m_tracklet_len;  // Number of frames since activation
     float m_confidence;  // Tracklet's score
@@ -85,10 +86,10 @@ private:
     //******************************************************************
 public:
     // Constructors
-    STrack(std::vector<float> tlwh_ = {0., 0., 0., 0.}, float score_ = 0.0, std::vector<float> temp_feat = {0.0},
+    STrack(std::vector<float> tlwh_ = {0., 0., 0., 0.}, float score_ = 0.0,int class_id=-1,std::vector<float> temp_feat = {0.0},
            HailoDetectionPtr detection_ptr = nullptr, int frame_id = 0,
            std::vector<hailo_object_t> hailo_objects_blacklist = {HAILO_LANDMARKS, HAILO_DEPTH_MASK, HAILO_CLASS_MASK}, bool debug = false) : m_is_activated(false), m_track_id(0), m_frame_id(frame_id), m_tracklet_len(0), m_confidence(score_),
-                                                                                                                                              m_start_frame(0), m_alpha(0.9), tmp_location_tlwh(tlwh_), m_state(TrackState::New),
+                                                                                                                                              m_class_id(class_id),m_start_frame(0), m_alpha(0.9), tmp_location_tlwh(tlwh_), m_state(TrackState::New),
                                                                                                                                               m_hailo_detection(detection_ptr), m_debug(debug)
     {
         m_times_seen = 0;
@@ -305,7 +306,7 @@ public:
      * @param kalman_filter  -  KalmanFilter
      *        The kalman filter with which to make the predictions.
      */
-    static void multi_predict(std::vector<STrack *> &stracks, KalmanFilter &kalman_filter)
+    static void multi_predict(std::vector<STrack *> &stracks, KalmanFilter &kalman_filter,int frame_id,int keep_predict_frames,float predict_limit)
     {
         for (uint i = 0; i < stracks.size(); i++)
         {
@@ -314,6 +315,22 @@ public:
                 stracks[i]->m_mean(7) = 0;
             }
             kalman_filter.predict(stracks[i]->m_mean, stracks[i]->m_covariance);
+
+            if( (frame_id - stracks[i]->end_frame()) < keep_predict_frames )
+	    {
+
+		std::vector<float> xyah= stracks[i]->to_xyah();
+
+ 		if( (xyah[0] < predict_limit) 
+		    && (xyah[0] > (1-predict_limit)) 
+                    && (xyah[1] < predict_limit) 
+                    && (xyah[1] > (1-predict_limit))
+                  )
+		{
+			stracks[i]->update_tlwh();
+		}
+	    }
+
         }
     }
 

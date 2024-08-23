@@ -61,6 +61,10 @@ struct track_shmseg
    unsigned int _numTracks=0;
    unsigned int _model_input_size_x=640;
    unsigned int _model_input_size_y=640;
+   unsigned int _keep_predict_frames=0;
+   float _predictable_region=0.9;
+   float _iou_scale_factor=0.1;
+   bool _iou_scale1_enable=true;
 };
 
 
@@ -125,6 +129,8 @@ public:
 	    printf("JDETracker Shared memory attach success\n");
 	}
 	printf("HailoTracker: _model_input_size_x,_model_input_size_x:%d,%d\n",m_track_shmp->_model_input_size_x,m_track_shmp->_model_input_size_y);
+	printf("HailoTracker: _keep_predict_frames,_predictable_region:%d,%f\n",m_track_shmp->_keep_predict_frames,m_track_shmp->_predictable_region);
+	printf("HailoTracker:  _iou_scale_factor,_iou_scale_enable:%f,%d\n", m_track_shmp->_iou_scale_factor,(int)m_track_shmp->_iou_scale_enable;
     }
 
     // Destructor
@@ -191,6 +197,7 @@ private:
 
     std::vector<std::vector<float>> iou_distance(std::vector<STrack *> &atracks, std::vector<STrack> &btracks);
     std::vector<std::vector<float>> iou_distance(std::vector<STrack> &atracks, std::vector<STrack> &btracks);
+    std::vector<std::vector<float>> iou_distance_custom(std::vector<STrack *> &atracks, std::vector<STrack> &btracks,float scale);
 
     std::vector<STrack *> joint_strack_pointers(std::vector<STrack *> &tlista, std::vector<STrack *> &tlistb);
     std::vector<STrack *> joint_strack_pointers(std::vector<STrack> &tlista, std::vector<STrack> &tlistb);
@@ -200,6 +207,7 @@ private:
 
     void embedding_distance(std::vector<STrack *> &tracks, std::vector<STrack> &detections, std::vector<std::vector<float>> &cost_matrix);
     void fuse_motion(std::vector<std::vector<float>> &cost_matrix, std::vector<STrack *> &tracks, std::vector<STrack> &detections, float lambda_);
+    void fuse_motion_custom(std::vector<std::vector<float>> &cost_matrix, std::vector<STrack *> &tracks, std::vector<STrack> &detections);
 };
 __END_DECLS
 

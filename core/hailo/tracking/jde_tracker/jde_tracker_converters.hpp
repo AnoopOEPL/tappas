@@ -35,7 +35,7 @@ inline std::vector<STrack> JDETracker::hailo_detections_to_stracks(std::vector<H
     {
         HailoBBox bbox = inputs[i]->get_bbox();
         std::vector<float> detection_box = {bbox.xmin(), bbox.ymin(), bbox.width(), bbox.height()};
-        STrack strack(detection_box, inputs[i]->get_confidence(), {}, inputs[i], frame_id, hailo_objects_blacklist);
+        STrack strack(detection_box, inputs[i]->get_confidence(),inputs[i]->get_class_id(), {}, inputs[i], frame_id, hailo_objects_blacklist);
         detections[i] = strack;
     }
 

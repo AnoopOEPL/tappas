@@ -115,3 +115,38 @@ inline void JDETracker::fuse_motion(std::vector<std::vector<float>> &cost_matrix
         }
     }
 }
+
+/**
+ * @brief Update a cost matrix with the gating distance of all STracks.
+ *        No returns are made 
+ * 
+ * @param cost_matrix  -  std::vector<std::vector<float>>
+ *        A preliminary cost matrix made by embedding_distance
+ *
+ * @param tracks  -  std::vector<STrack*>
+ *        Pointers to tracked STracks.
+ *
+ * @param detections  -  std::vector<STrack>
+ *        The newly detected STracks.
+ *
+ * @param lambda_  -  float
+ *        How much weight to give the gating distance.
+ */
+inline void JDETracker::fuse_motion_custom(std::vector<std::vector<float>> &cost_matrix,
+                                    std::vector<STrack*> &tracks,
+                                    std::vector<STrack> &detections)
+{
+    if (cost_matrix.size() == 0)
+        return;
+
+    for (uint i = 0; i < tracks.size(); i++)
+    {
+        for (uint j = 0; j < cost_matrix[i].size(); j++)
+        {
+            if (tracks[i]->m_class_id != detections[j].m_class_id)
+            {
+                cost_matrix[i][j] = FLT_MAX;
+            }
+        }
+    }
+}

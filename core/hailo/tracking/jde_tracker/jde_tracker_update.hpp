@@ -222,57 +222,98 @@ inline std::vector<STrack> JDETracker::update(std::vector<HailoDetectionPtr> &in
     detections = JDETracker::hailo_detections_to_stracks(inputs, this->m_frame_id, this->m_hailo_objects_blacklist); // Convert the new detections into STracks
 
     strack_pool = joint_strack_pointers(this->m_tracked_stracks, this->m_lost_stracks); // Pool together the tracked and lost stracks
-    STrack::multi_predict(strack_pool, this->m_kalman_filter);                          // Run Kalman Filter prediction step
+    STrack::multi_predict(strack_pool, this->m_kalman_filter,this->m_frame_id,m_track_shmp->m_keep_predict_frames,m_track_shmp->_predictable_region);   // Run Kalman Filter prediction step
+
+
 
     //******************************************************************
     // Step 2: First association, tracked with embedding
     //******************************************************************
     // Calculate the distances between the tracked/lost stracks and the newly detected inputs
-    embedding_distance(strack_pool, detections, distances); // Calculate the distances
-    fuse_motion(distances, strack_pool, detections);        // Create the cost matrix
+    //embedding_distance(strack_pool, detections, distances); // Calculate the distances
+    //fuse_motion(distances, strack_pool, detections);        // Create the cost matrix
 
     // Use linear assignment to find matches
-    linear_assignment(distances, strack_pool.size(), detections.size(), this->m_kalman_dist_thr, matches, unmatched_tracked, unmatched_detections);
+    //linear_assignment(distances, strack_pool.size(), detections.size(), this->m_kalman_dist_thr, matches, unmatched_tracked, unmatched_detections);
+
+    // Update the matches
+    //update_matches(matches, strack_pool, detections, activated_stracks);
+
+    // Use the unmatched_detections indices to get a vector of just the unmatched new detections
+    //keep_indices(detections, unmatched_detections);
+
+    // Use the unmatched_tracked indices to get a vector of only unmatched, previously tracked, but-not-yet-lost stracks
+    //keep_indices(strack_pool, unmatched_tracked);
+
+
+
+    //******************************************************************
+    // Step 3.1: First association, tracked with IOU
+    //******************************************************************
+
+
+    //calculate the iou distance of what's left
+    distances = iou_distance(strack_pool, detections);
+
+    fuse_motion_custom(distances, strack_pool, detections);
+
+    // Use linear assignment to find matches
+    linear_assignment(distances, strack_pool.size(), detections.size(), this->m_iou_thr, matches, unmatched_tracked, unmatched_detections);
 
     // Update the matches
     update_matches(matches, strack_pool, detections, activated_stracks);
 
-    //******************************************************************
-    // Step 3: Second association, leftover tracked with IOU
-    //******************************************************************
     // Use the unmatched_detections indices to get a vector of just the unmatched new detections
     keep_indices(detections, unmatched_detections);
 
     // Use the unmatched_tracked indices to get a vector of only unmatched, previously tracked, but-not-yet-lost stracks
     keep_indices(strack_pool, unmatched_tracked);
 
-    // Instead of embedding distance, this time we will associate based on iou,
-    // so calculate the iou distance of what's left
-    distances = iou_distance(strack_pool, detections);
 
-    // Recalculate the linear assignment, this time use the iou threshold
-    linear_assignment(distances, strack_pool.size(), detections.size(), this->m_iou_thr, matches, unmatched_tracked, unmatched_detections);
 
-    // Update the matches
-    update_matches(matches, strack_pool, detections, activated_stracks);
+    //******************************************************************
+    // Step 3.2: Second association, leftover tracked with extended IOU
+    //******************************************************************
 
-    // Break down the strack_pool to just the remaining unmatched stracks
-    keep_indices(strack_pool, unmatched_tracked);
+    if(m_shmp->_iou_scale_enable==true)
+    {
+    	// calculate the iou distance of what's left
+    	distances = iou_distance_custom(strack_pool, detections, m_track_shmp->_iou_scale_factor);
+    	fuse_motion_custom(distances, strack_pool, detections);
+
+
+    	// Recalculate the linear assignment, this time use the iou threshold
+    	linear_assignment(distances, strack_pool.size(), detections.size(), this->m_iou_thr, matches, unmatched_tracked, unmatched_detections);
+	
+    	// Update the matches
+    	update_matches(matches, strack_pool, detections, activated_stracks);
+
+    	// Break down the strack_pool to just the remaining unmatched stracks
+    	keep_indices(strack_pool, unmatched_tracked);
+
+    	//Use the unmatched_detections indices to get a vector of just the unmatched new detections again
+    	keep_indices(detections, unmatched_detections);
+    }
 
     // Update the state of the remaining unmatched stracks
     update_unmatches(strack_pool, activated_stracks, lost_stracks, new_stracks);
+
+
 
     //******************************************************************
     // Step 4: Third association, uncomfirmed with weaker IOU
     //******************************************************************
     // Deal with the unconfirmed stracks, these are usually stracks with only one beginning frame
     // Use the unmatched_detections indices to get a vector of just the unmatched new detections again
-    keep_indices(detections, unmatched_detections);
+
+
     std::vector<STrack> blank;
     std::vector<STrack *> unconfirmed_pool = joint_strack_pointers(this->m_new_stracks, blank); // Prepare a pool of unconfirmed stracks
 
     // Recalculate the iou distance, this time between unconfirmed stracks and the remaining detections
     distances = iou_distance(unconfirmed_pool, detections);
+
+    fuse_motion_custom(distances,unconfirmed_pool, detections);
 
     // Recalculate the linear assignment, this time with the lower m_init_iou_thr threshold
     linear_assignment(distances, unconfirmed_pool.size(), detections.size(), this->m_init_iou_thr, matches, unmatched_tracked, unmatched_detections);
@@ -335,7 +376,7 @@ inline std::vector<STrack> JDETracker::update(std::vector<HailoDetectionPtr> &in
 		m_track_shmp->_tracks[i].width     = xyah[2]*xyah[3]*m_track_shmp->_model_input_size_x; //a*h
 		m_track_shmp->_tracks[i].height    = xyah[3]*m_track_shmp->_model_input_size_y; //h
         	m_track_shmp->_tracks[i].trackID   = temp_track.m_track_id;
-		//m_track_shmp->_tracks[i].classtype = temp_track.m_class_id;
+		m_track_shmp->_tracks[i].classtype = temp_track.m_class_id;
 	}		
      }
     return output_stracks;
