@@ -64,7 +64,7 @@ struct track_shmseg
    unsigned int _keep_predict_frames=0;
    float _predictable_region=0.9;
    float _iou_scale_factor=0.1;
-   bool _iou_scale1_enable=true;
+   bool _iou_scale_enable=true;
 };
 
 
