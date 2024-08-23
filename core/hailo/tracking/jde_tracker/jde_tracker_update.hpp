@@ -275,7 +275,7 @@ inline std::vector<STrack> JDETracker::update(std::vector<HailoDetectionPtr> &in
     // Step 3.2: Second association, leftover tracked with extended IOU
     //******************************************************************
 
-    if(m_shmp->_iou_scale_enable==true)
+    if(m_track_shmp->_iou_scale_enable==true)
     {
     	// calculate the iou distance of what's left
     	distances = iou_distance_custom(strack_pool, detections, m_track_shmp->_iou_scale_factor);
