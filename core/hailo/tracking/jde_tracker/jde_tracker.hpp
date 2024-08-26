@@ -109,6 +109,7 @@ public:
                                                                                                                                   m_keep_past_metadata(keep_past_metadata), m_debug(debug), m_hailo_objects_blacklist(hailo_objects_blacklist_vec)
     {
 
+	printf("**************Hailo: nv-imx 1.3.4*****************\n");
         m_kalman_filter = KalmanFilter(std_weight_position, std_weight_position_box, std_weight_velocity, std_weight_velocity_box);
 
 	//Shared memory
