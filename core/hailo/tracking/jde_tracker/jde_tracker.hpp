@@ -110,6 +110,7 @@ public:
     {
 
 	printf("**************Hailo: nv-imx 1.3.4*****************\n");
+	printf("size==%d\n", (int)sizeof(track_shmseg));
         m_kalman_filter = KalmanFilter(std_weight_position, std_weight_position_box, std_weight_velocity, std_weight_velocity_box);
 
 	//Shared memory
