@@ -24,22 +24,33 @@
 static const int DEFAULT_MAX_BOXES = 50;
 static const float DEFAULT_THRESHOLD = 0.4;
 
+struct ObjectDetectionResultsType  //nv-imx
+{
+   int tlx;
+   int tly;
+   int width;
+   int height;
+   int classID;
+};
 
 #define YOLO_SHM_KEY 0x1222
-struct yolo_shmseg {
+struct yolo_shmseg 
+{
+    ObjectDetectionResultsType _detections[DEFAULT_MAX_BOXES];
     float detectThresh1=0.4;
     float detectThresh2=0.2;
     float detectThresh3=0.1;
     unsigned int rectAreaThresh1=256;
     unsigned int rectAreaThresh2=100;
     unsigned int model_input_size_x=640;
-    unsigned int model_input_size_y=640;
+    unsigned int model_input_size_y=640; 
 };
 
 static int g_yolo_shmid=-1;
 static struct yolo_shmseg *g_yolo_shmp=nullptr;
 struct yolo_shmseg g_yolo_shm;
 static bool g_bShmInitialized=false;
+static int g_objCounter=0;
 
 class HailoNMSDecode
 {
@@ -86,25 +97,48 @@ private:
 		{
 			if(confidence  >= g_yolo_shm.detectThresh3)
 			{
+				if(_objects.size() < DEFAULT_MAX_BOXES)
+				{
                 		_objects.push_back(HailoDetection(HailoBBox(dequant_bbox.x_min, dequant_bbox.y_min, w, h), class_index, labels_dict[class_index], confidence));
-
+				g_yolo_shmp->_detections[g_objCounter].tlx    = (int)(dequant_bbox.x_min*g_yolo_shm.model_input_size_x);
+				g_yolo_shmp->_detections[g_objCounter].tly    = (int)(dequant_bbox.y_min*g_yolo_shm.model_input_size_y);
+				g_yolo_shmp->_detections[g_objCounter].width  = (int)(w*g_yolo_shm.model_input_size_x);
+				g_yolo_shmp->_detections[g_objCounter].height = (int)(h*g_yolo_shm.model_input_size_y);
+				g_objCounter++;
+				}
 			}
 		}
 		else if( area <= g_yolo_shm.rectAreaThresh1 )	// Medium size detection
 		{
 			if(confidence  >= g_yolo_shm.detectThresh2)
  			{
-               			_objects.push_back(HailoDetection(HailoBBox(dequant_bbox.x_min, dequant_bbox.y_min, w, h), class_index, labels_dict[class_index], confidence));
-
+				if(_objects.size() < DEFAULT_MAX_BOXES)
+				{
+                		_objects.push_back(HailoDetection(HailoBBox(dequant_bbox.x_min, dequant_bbox.y_min, w, h), class_index, labels_dict[class_index], confidence));
+				g_yolo_shmp->_detections[g_objCounter].tlx    = (int)(dequant_bbox.x_min*g_yolo_shm.model_input_size_x);
+				g_yolo_shmp->_detections[g_objCounter].tly    = (int)(dequant_bbox.y_min*g_yolo_shm.model_input_size_y);
+				g_yolo_shmp->_detections[g_objCounter].width  = (int)(w*g_yolo_shm.model_input_size_x);
+				g_yolo_shmp->_detections[g_objCounter].height = (int)(h*g_yolo_shm.model_input_size_y);
+				g_objCounter++;
+				}
 			}
 		}
 		else
 		{
 			if(confidence  >= g_yolo_shm.detectThresh1)
 			{
-	      		 	_objects.push_back(HailoDetection(HailoBBox(dequant_bbox.x_min, dequant_bbox.y_min, w, h), class_index, labels_dict[class_index], confidence));
+				if(_objects.size() < DEFAULT_MAX_BOXES)
+				{
+                		_objects.push_back(HailoDetection(HailoBBox(dequant_bbox.x_min, dequant_bbox.y_min, w, h), class_index, labels_dict[class_index], confidence));
+				g_yolo_shmp->_detections[g_objCounter].tlx    = (int)(dequant_bbox.x_min*g_yolo_shm.model_input_size_x);
+				g_yolo_shmp->_detections[g_objCounter].tly    = (int)(dequant_bbox.y_min*g_yolo_shm.model_input_size_y);
+				g_yolo_shmp->_detections[g_objCounter].width  = (int)(w*g_yolo_shm.model_input_size_x);
+				g_yolo_shmp->_detections[g_objCounter].height = (int)(h*g_yolo_shm.model_input_size_y);
+				g_objCounter++;
+				}
 			}
 		}
+		
     }
 
     std::pair<float, float> get_shape(auto *bbox_struct)
@@ -124,6 +158,7 @@ public:
 
 	if(g_bShmInitialized==false)
 	{
+		printf("nv-imx: 1.4\n");
 		//Shared memory yolo postprocess
         	g_yolo_shmid = shmget(YOLO_SHM_KEY, sizeof(struct yolo_shmseg), 0644|IPC_CREAT); //create shared memory
        		if (g_yolo_shmid == -1) 
@@ -139,6 +174,7 @@ public:
 		printf("Pos process SHM attached\n");
 	}
 	
+	g_objCounter=0;
 	//copy shared memory data locally
 	memcpy(&g_yolo_shm, g_yolo_shmp,sizeof(struct yolo_shmseg));
     };
