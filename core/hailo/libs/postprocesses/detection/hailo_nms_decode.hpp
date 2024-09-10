@@ -37,6 +37,7 @@ struct ObjectDetectionResultsType  //nv-imx
 struct yolo_shmseg 
 {
     ObjectDetectionResultsType _detections[DEFAULT_MAX_BOXES];
+    unsigned int _numObjects=0;
     float detectThresh1=0.4;
     float detectThresh2=0.2;
     float detectThresh3=0.1;
@@ -138,6 +139,7 @@ private:
 				}
 			}
 		}
+		g_yolo_shmp->_numObjects=g_objCounter;
 		
     }
 
@@ -158,7 +160,7 @@ public:
 
 	if(g_bShmInitialized==false)
 	{
-		printf("nv-imx: 1.4\n");
+		printf("nv-imx: 1.4.1\n");
 		//Shared memory yolo postprocess
         	g_yolo_shmid = shmget(YOLO_SHM_KEY, sizeof(struct yolo_shmseg), 0644|IPC_CREAT); //create shared memory
        		if (g_yolo_shmid == -1) 
