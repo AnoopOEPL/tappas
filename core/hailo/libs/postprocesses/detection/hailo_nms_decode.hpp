@@ -38,11 +38,11 @@ struct yolo_shmseg
 {
     ObjectDetectionResultsType _detections[DEFAULT_MAX_BOXES];
     unsigned int _numObjects=0;
-    float detectThresh1=0.4;
-    float detectThresh2=0.2;
-    float detectThresh3=0.1;
-    unsigned int rectAreaThresh1=256;
-    unsigned int rectAreaThresh2=100;
+    float detectThresh_H=0.4;
+    float detectThresh_M=0.2;
+    float detectThresh_L=0.1;
+    unsigned int rectAreaThresh_M =256;
+    unsigned int rectAreaThresh_S =100;
     unsigned int model_input_size_x=640;
     unsigned int model_input_size_y=640; 
 };
@@ -94,9 +94,9 @@ private:
 		std::tie(w, h) = get_shape(&dequant_bbox); // parse width and height of the box   
 		unsigned int area=(unsigned int)(g_yolo_shm.model_input_size_x*g_yolo_shm.model_input_size_y*w*h);
 
-		if(area <= g_yolo_shm.rectAreaThresh2)	// Smallest detection
+		if(area <= g_yolo_shm.rectAreaThresh_S)	// Smallest detection
 		{
-			if(confidence  >= g_yolo_shm.detectThresh3)
+			if(confidence  >= g_yolo_shm.detectThresh_L)
 			{
 				if(_objects.size() < DEFAULT_MAX_BOXES)
 				{
@@ -105,13 +105,14 @@ private:
 				g_yolo_shmp->_detections[g_objCounter].tly    = (int)(dequant_bbox.y_min*g_yolo_shm.model_input_size_y);
 				g_yolo_shmp->_detections[g_objCounter].width  = (int)(w*g_yolo_shm.model_input_size_x);
 				g_yolo_shmp->_detections[g_objCounter].height = (int)(h*g_yolo_shm.model_input_size_y);
+				g_yolo_shmp->_detections[g_objCounter].classID= (int)(class_index);
 				g_objCounter++;
 				}
 			}
 		}
-		else if( area <= g_yolo_shm.rectAreaThresh1 )	// Medium size detection
+		else if( area <= g_yolo_shm.rectAreaThresh_M )	// Medium size detection
 		{
-			if(confidence  >= g_yolo_shm.detectThresh2)
+			if(confidence  >= g_yolo_shm.detectThresh_M)
  			{
 				if(_objects.size() < DEFAULT_MAX_BOXES)
 				{
@@ -120,13 +121,14 @@ private:
 				g_yolo_shmp->_detections[g_objCounter].tly    = (int)(dequant_bbox.y_min*g_yolo_shm.model_input_size_y);
 				g_yolo_shmp->_detections[g_objCounter].width  = (int)(w*g_yolo_shm.model_input_size_x);
 				g_yolo_shmp->_detections[g_objCounter].height = (int)(h*g_yolo_shm.model_input_size_y);
+				g_yolo_shmp->_detections[g_objCounter].classID= (int)(class_index);
 				g_objCounter++;
 				}
 			}
 		}
 		else
 		{
-			if(confidence  >= g_yolo_shm.detectThresh1)
+			if(confidence  >= g_yolo_shm.detectThresh_H)
 			{
 				if(_objects.size() < DEFAULT_MAX_BOXES)
 				{
@@ -135,6 +137,7 @@ private:
 				g_yolo_shmp->_detections[g_objCounter].tly    = (int)(dequant_bbox.y_min*g_yolo_shm.model_input_size_y);
 				g_yolo_shmp->_detections[g_objCounter].width  = (int)(w*g_yolo_shm.model_input_size_x);
 				g_yolo_shmp->_detections[g_objCounter].height = (int)(h*g_yolo_shm.model_input_size_y);
+				g_yolo_shmp->_detections[g_objCounter].classID= (int)(class_index);
 				g_objCounter++;
 				}
 			}
@@ -160,7 +163,7 @@ public:
 
 	if(g_bShmInitialized==false)
 	{
-		printf("nv-imx: 1.4.1\n");
+		printf("nv-imx: 1.4.2\n");
 		//Shared memory yolo postprocess
         	g_yolo_shmid = shmget(YOLO_SHM_KEY, sizeof(struct yolo_shmseg), 0644|IPC_CREAT); //create shared memory
        		if (g_yolo_shmid == -1) 
