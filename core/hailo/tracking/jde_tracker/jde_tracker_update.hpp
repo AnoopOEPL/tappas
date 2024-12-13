@@ -172,6 +172,71 @@ inline void JDETracker::update_unmatches(std::vector<STrack *> strack_pool,
 }
 
 /**
+ * @brief update tracker datasbase based on the tracking mode. 
+ *        if mot is enabled by the user,search the selected track id 
+ *        in active tracks.if not found search in lost tracks.if the selected 
+ *	  track id is available,it is considered as a valid sot.
+ *        take place:
+*/
+inline void JDETracker::update_trackmode(std::vector<STrack> &stracksa,std::vector<STrack> &stracksb,std::vector<STrack> &stracksc)
+{
+	if(m_track_shmp->_selectedTarget!=-1)//if not mot
+	{
+		//search in tracked tracks
+		for (uint i = 0; i < stracksa.size(); i++)
+    		{
+        		if(stracksa[i].trackID==m_track_shmp->_selectedTarget)
+			{
+				STrack sot_track=stracksa[i];
+
+                std::vector<float> xyah= sot_track.to_xyah();
+                m_track_shmp->_sot_track.cX        = xyah[0]*m_track_shmp->_model_input_size_x;
+                m_track_shmp->_sot_track.cY        = xyah[1]*m_track_shmp->_model_input_size_y;
+				m_track_shmp->_sot_track.width     = xyah[2]*xyah[3]*m_track_shmp->_model_input_size_x; //a*h
+				m_track_shmp->_sot_track.height    = xyah[3]*m_track_shmp->_model_input_size_y; //h
+
+                m_track_shmp->_sot_track.trackID   = sot_track.trackID;
+				m_track_shmp->_sot_track.classtype = sot_track.classtype;
+				
+                m_track_shmp->_bValidTrack=true;
+
+				
+				return;
+			}
+		}
+		
+		//search in lost tracks
+		for (uint i = 0; i < stracksb.size(); i++)
+    		{
+        		if(stracksb[i].trackID==m_track_shmp->_selectedTarget)
+			{
+				STrack sot_track=stracksb[i];
+
+                std::vector<float> xyah= sot_track.to_xyah();
+				m_track_shmp->_sot_track.cX        = xyah[0]*m_track_shmp->_model_input_size_x;
+        		m_track_shmp->_sot_track.cY        = xyah[1]*m_track_shmp->_model_input_size_y;
+				m_track_shmp->_sot_track.width     = xyah[2]*xyah[3]*m_track_shmp->_model_input_size_x; //a*h
+				m_track_shmp->_sot_track.height    = xyah[3]*m_track_shmp->_model_input_size_y; //h
+        		m_track_shmp->_sot_track.trackID   = sot_track.trackID;
+
+				m_track_shmp->_sot_track.classtype = sot_track.classtype;
+        		m_track_shmp->_bValidTrack=true;
+
+				return;
+			}
+		}
+
+		m_track_shmp->_bValidTrack=false; //Note:: so track is lost permanently -couldnt find the sot either in active or in lost tracks
+
+	}
+	else
+	{
+        	m_track_shmp->_bValidTrack=false;
+	}
+	return;
+}
+
+/**
  * @brief The main logic unit and access point of the tracker system.
  *        On each new frame of the pipeline, this function should be called
  *        and given the new detections in the frame. The following steps
@@ -334,6 +399,10 @@ inline std::vector<STrack> JDETracker::update(std::vector<HailoDetectionPtr> &in
     for (uint i = 0; i < unmatched_detections.size(); i++)
         new_stracks.emplace_back(detections[unmatched_detections[i]]);
 
+    //
+    //
+    update_trackmode(activated_stracks,lost_stracks,new_stracks);
+
     //******************************************************************
     // Step 6: Update Database
     //******************************************************************
@@ -375,7 +444,7 @@ inline std::vector<STrack> JDETracker::update(std::vector<HailoDetectionPtr> &in
         	m_track_shmp->_tracks[i].cY        = xyah[1]*m_track_shmp->_model_input_size_y; //cy
 		m_track_shmp->_tracks[i].width     = xyah[2]*xyah[3]*m_track_shmp->_model_input_size_x; //a*h
 		m_track_shmp->_tracks[i].height    = xyah[3]*m_track_shmp->_model_input_size_y; //h
-        	m_track_shmp->_tracks[i].trackID   = temp_track.m_track_id;
+        	m_track_shmp->_tracks[i].trackID   = temp_track.trackID;
 		m_track_shmp->_tracks[i].classtype = temp_track.m_class_id;
 	}		
      }

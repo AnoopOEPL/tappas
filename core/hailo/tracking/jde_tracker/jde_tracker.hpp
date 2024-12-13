@@ -52,11 +52,13 @@ struct ObjectTrackingResultsType  //nv-imx
    int height;
    int classtype;
    int trackID;
+
 };
 
 #define SHM_KEY 0x1234
 struct track_shmseg 
 {
+   ObjectTrackingResultsType _sot_track;
    ObjectTrackingResultsType _tracks[MAX_NUM_TRACKS];
    unsigned int _numTracks=0;
    unsigned int _model_input_size_x=640;
@@ -65,6 +67,8 @@ struct track_shmseg
    float _predictable_region=0.9;
    float _iou_scale_factor=0.1;
    bool _iou_scale_enable=true;
+   int _selectedTarget=-1; //queried sot track id
+   bool _bValidTrack=false;//sot track status
 };
 
 
@@ -91,7 +95,7 @@ private:
     std::vector<hailo_object_t> m_hailo_objects_blacklist; // Objects that will never be kept track of
 
     int m_track_shmid;		//shared memory id
-    struct track_shmseg *m_track_shmp;	//shared memory data
+    struct track_shmseg *m_track_shmp;	//shared memory data//
 
     //******************************************************************
     // CLASS RESOURCE MANAGEMENT
@@ -193,6 +197,8 @@ public:
 
     /******************** PRIVATE FUNCTIONS ****************************/
 private:
+
+    void update_trackmode(std::vector<STrack> &stracksa,std::vector<STrack> &stracksb,std::vector<STrack> &stracksc);
     void update_unmatches(std::vector<STrack *> strack_pool, std::vector<STrack> &tracked_stracks, std::vector<STrack> &lost_stracks, std::vector<STrack> &new_stracks);
     void update_matches(std::vector<std::pair<int, int>> matches, std::vector<STrack *> tracked_stracks, std::vector<STrack> &detections, std::vector<STrack> &activated_stracks);
     void linear_assignment(std::vector<std::vector<float>> &cost_matrix, int cost_matrix_rows, int cost_matrix_cols, float thresh, std::vector<std::pair<int, int>> &matches, std::vector<int> &unmatched_a, std::vector<int> &unmatched_b);
@@ -210,6 +216,7 @@ private:
     void embedding_distance(std::vector<STrack *> &tracks, std::vector<STrack> &detections, std::vector<std::vector<float>> &cost_matrix);
     void fuse_motion(std::vector<std::vector<float>> &cost_matrix, std::vector<STrack *> &tracks, std::vector<STrack> &detections, float lambda_);
     void fuse_motion_custom(std::vector<std::vector<float>> &cost_matrix, std::vector<STrack *> &tracks, std::vector<STrack> &detections);
+
 };
 __END_DECLS
 
