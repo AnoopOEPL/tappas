@@ -185,7 +185,7 @@ inline void JDETracker::update_trackmode(std::vector<STrack> &stracksa,std::vect
 		//search in tracked tracks
 		for (uint i = 0; i < stracksa.size(); i++)
     		{
-        		if(stracksa[i].trackID==m_track_shmp->_selectedTarget)
+        		if(stracksa[i].m_track_id==m_track_shmp->_selectedTarget)
 			{
 				STrack sot_track=stracksa[i];
 
@@ -208,7 +208,7 @@ inline void JDETracker::update_trackmode(std::vector<STrack> &stracksa,std::vect
 		//search in lost tracks
 		for (uint i = 0; i < stracksb.size(); i++)
     		{
-        		if(stracksb[i].trackID==m_track_shmp->_selectedTarget)
+        		if(stracksb[i].m_track_id==m_track_shmp->_selectedTarget)
 			{
 				STrack sot_track=stracksb[i];
 
