@@ -425,6 +425,7 @@ inline std::vector<STrack> JDETracker::update(std::vector<HailoDetectionPtr> &in
         for (uint i = 0; i < this->m_new_stracks.size(); i++)
             output_stracks.emplace_back(this->m_new_stracks[i]);
     }
+	//suraj
     report_lost = true;
     if (report_lost or this->m_debug)
     {
